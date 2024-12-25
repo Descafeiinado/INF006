@@ -10,38 +10,46 @@
 #define MAX_COLUMN_LEN 100
 #define MAX_LINE_LEN 100
 
-void matrixToStdout(int matrix[MAX_COLUMN_LEN][MAX_LINE_LEN], int rowLengths[MAX_LINE_LEN]) {
-    // Loop through each row
-    for (int i = 0; i < MAX_LINE_LEN; i++) {
-        // Get the number of columns for this row from row_lengths
-        int cols = rowLengths[i];
-        
-        if(!cols) continue;
+typedef struct RowPair
+{
+  int *row;
+  int sum;
+} RowPair;
 
-        // Loop through the actual number of columns in the current row
-        for (int j = 0; j < cols; j++) {
-            // Print each element followed by a space
-            printf("%d ", matrix[i][j]);
-        }
-        
-        // Print a new line after each row
-        printf("\n");
+void matrixToStdout(int matrix[MAX_COLUMN_LEN][MAX_LINE_LEN], int rowLengths[MAX_LINE_LEN])
+{
+  for (int i = 0; i < MAX_LINE_LEN; i++)
+  {
+    int cols = rowLengths[i];
+
+    if (!cols)
+      continue;
+
+    for (int j = 0; j < cols; j++)
+    {
+      printf("%d ", matrix[i][j]);
     }
 
+    printf("\n");
+  }
 }
 
 void sortIntegers(int *integers, int n);
 void quickSortIntegers(int *list, int low, int high);
 int partitionIntegers(int *list, int low, int high);
+void swapIntegers(int *integers, int i, int j);
+
+void quickSortRowPairs(RowPair *list, int *rowLengths, int low, int high);
+int partitionRowPairs(RowPair *list, int *rowLengths, int low, int high);
+void swapRowPairs(RowPair *list, int *rowLengths, int i, int j);
 
 void readInputAndProcess();
 void processLine(char *line, FILE *outputFile, int isLastLine);
 void writeOutputToFile(const char *output);
 
 int parseInt(const char *str);
-void swapIntegers(int *integers, int i, int j);
 
-void removeNewLine(char* string);
+void removeNewLine(char *string);
 
 int main()
 {
@@ -80,7 +88,6 @@ void readInputAndProcess()
     lineCounter++;
 
     processLine(line, outputFile, lineCounter == totalLines);
-    printf("NextLine\n");
   }
 
   fclose(inputFile);
@@ -88,41 +95,91 @@ void readInputAndProcess()
 }
 
 void processLine(char *line, FILE *outputFile, int isLastLine)
-{  
-  int begun = 0;
-  int matrix[MAX_LINE_LEN][MAX_COLUMN_LEN], lineIndex = 0, columnIndex = 0, rowLengths[MAX_LINE_LEN];
+{
+    removeNewLine(line);
 
-  char *token = strtok(line, " ");
-    
-  while (token) {
-    if (strcmp(token, "start") == 0) {
-      if(begun) {
-        printf("\nBeggining Line %d, Row Length %d\n", lineIndex, columnIndex);
+    int begun = 0;
+    int matrix[MAX_LINE_LEN][MAX_COLUMN_LEN] = {0};
+    int rowLengths[MAX_LINE_LEN] = {0};
+    int lineIndex = 0, columnIndex = 0;
 
-      rowLengths[lineIndex] = columnIndex;
-      columnIndex = 0;
+    char *token = strtok(line, " ");
 
-      lineIndex++;
+    while (token)
+    {
+        if (strcmp(token, "start") == 0)
+        {
+            if (begun)
+            {
+                rowLengths[lineIndex++] = columnIndex;
+                columnIndex = 0;
+            }
 
-      printf("New Line Index: %d | ", lineIndex);
-      }
+            begun = 1;
+        }
+        else
+        {
+            int value = parseInt(token);
 
-      begun = 1;
+            matrix[lineIndex][columnIndex++] = value;
+        }
+
+        token = strtok(NULL, " ");
     }
-    else {
-      printf("DefininG %dx%d to %d | ", lineIndex, columnIndex + 1, parseInt(token));
-      matrix[lineIndex][columnIndex++] = parseInt(token);
+
+    if (begun) rowLengths[lineIndex++] = columnIndex;
+
+    for (int i = 0; i < lineIndex; i++)
+    {
+        int *row = matrix[i];
+        int rowLength = rowLengths[i];
+
+        sortIntegers(row, rowLength);
     }
 
-    token = strtok(NULL, " ");
-  }
+    RowPair rowPairs[MAX_LINE_LEN] = {0};
 
-  int arrsz = sizeof(rowLengths) / sizeof(int);
+    for (int i = 0; i < lineIndex; i++)
+    {
+        int *row = matrix[i];
+        int rowLength = rowLengths[i];
 
-  for(int i = 0; i < arrsz; i++) {}
-    // printf("\n i = %d | %d\n", i, rowLengths[i]);
+        int sum = 0;
+        for (int j = 0; j < rowLength; j++)
+        {
+            sum += row[j];
+        }
 
-  matrixToStdout(matrix, rowLengths);
+        rowPairs[i].row = row;
+        rowPairs[i].sum = sum;
+    }
+
+    quickSortRowPairs(rowPairs, rowLengths, 0, lineIndex - 1);
+
+    for (int i = 0; i < lineIndex; i++)
+    {
+        int isTheLastRow = i == lineIndex - 1;
+
+        int *row = rowPairs[i].row;
+        int rowLength = rowLengths[i];
+
+        fprintf(outputFile, "start ");
+
+        for (int j = 0; j < rowLength; j++)
+        {
+            int isTheLastElement = j == rowLength - 1;
+            
+            fprintf(outputFile, "%d", row[j]);
+
+            if (!(isTheLastElement && isTheLastRow))
+            {
+                fprintf(outputFile, " ");
+            }
+        }
+    }
+
+    if (!isLastLine)
+        fprintf(outputFile, "\n");
 }
 
 void sortIntegers(int *integers, int n)
@@ -165,21 +222,64 @@ void swapIntegers(int *integers, int i, int j)
   integers[j] = temp;
 }
 
+void quickSortRowPairs(RowPair *list, int *rowLengths, int low, int high)
+{
+  if (low < high)
+  {
+    int pivotIndex = partitionRowPairs(list, rowLengths, low, high);
+    quickSortRowPairs(list, rowLengths, low, pivotIndex - 1);
+    quickSortRowPairs(list, rowLengths, pivotIndex + 1, high);
+  }
+}
+
+int partitionRowPairs(RowPair *list, int *rowLengths, int low, int high)
+{
+  int pivot = list[high].sum;
+  int i = low - 1;
+
+  for (int j = low; j < high; j++)
+  {
+    if (list[j].sum <= pivot)
+    {
+      i++;
+      swapRowPairs(list, rowLengths, i, j);
+    }
+  }
+
+  swapRowPairs(list, rowLengths, i + 1, high);
+  return i + 1;
+}
+
+void swapRowPairs(RowPair *list, int *rowLengths, int i, int j)
+{
+  // Swap the RowPair elements
+  RowPair temp = list[i];
+  list[i] = list[j];
+  list[j] = temp;
+
+  // Swap the corresponding rowLengths
+  int tempLength = rowLengths[i];
+  rowLengths[i] = rowLengths[j];
+  rowLengths[j] = tempLength;
+}
+
 int parseInt(const char *str)
 {
   return atoi(str);
 }
 
-void removeNewLine(char* string) {
+void removeNewLine(char *string)
+{
   int copyIndex = 0;
   int size = strlen(string);
 
-  char* copy = malloc(sizeof(char) * size);
+  char *copy = malloc(sizeof(char) * size);
 
-  for (int index = 0; index < size; index++) {
+  for (int index = 0; index < size; index++)
+  {
     char value = string[index];
 
-    if (value != '\n') 
+    if (value != '\n')
       copy[copyIndex++] = value;
   }
 
