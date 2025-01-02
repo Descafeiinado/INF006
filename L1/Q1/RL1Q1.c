@@ -45,7 +45,6 @@ void swapRowPairs(RowPair *list, int *rowLengths, int i, int j);
 
 void readInputAndProcess();
 void processLine(char *line, FILE *outputFile, int isLastLine);
-void writeOutputToFile(const char *output);
 
 int parseInt(const char *str);
 
