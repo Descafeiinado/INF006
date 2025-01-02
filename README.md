@@ -1,5 +1,5 @@
 # INF006
-Códigos INF006
+Repositório destinado no armazenamento dos
 
-gcc RL1Q1.c -o RL1Q1
-gcc RL1Q3.c -o RL1Q3
+## Script para automatizar a comparação das saídas
+./compile-and-run.sh --list <NUMERO-DA-LISTA> --question <NUMERO-DA-QUESTAO>

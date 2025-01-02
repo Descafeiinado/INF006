@@ -2,6 +2,7 @@
 // - Filipe Lordêlo Fiúza (20241160009)
 // - Júlio dos Reis Sousa (20241160014)
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +10,33 @@
 
 #define MAX_COLUMN_LEN 100
 #define MAX_LINE_LEN 100
+
+// doubly linked non-circular list node structures | signatures
+
+typedef struct IntNode
+{
+  int value;
+
+  struct IntNode *prev;
+  struct IntNode *next;
+} IntNode;
+
+typedef struct IntList
+{
+  IntNode *head;
+} IntList;
+
+// doubly linked non-circular list methods (create, insert, remove, has, print, free, count ocurrences) | signatures
+
+IntNode *createIntNode(int value);
+IntList *createIntList();
+void insertIntNode(IntList *list, IntNode *node);
+void removeIntNode(IntList *list, IntNode *node);
+void removeIntValue(IntList *list, int value);
+bool hasAnyNodeWithIntegerValue(IntList *list, int value);
+void printIntNodes(IntList *list);
+void freeIntList(IntList *list); // just in case
+int countIntNodeOccurrences(IntList *list, int value);
 
 typedef struct RowPair
 {
@@ -95,90 +123,109 @@ void readInputAndProcess()
 
 void processLine(char *line, FILE *outputFile, int isLastLine)
 {
-    removeNewLine(line);
+  removeNewLine(line);
 
-    int begun = 0;
-    int matrix[MAX_LINE_LEN][MAX_COLUMN_LEN] = {0};
-    int rowLengths[MAX_LINE_LEN] = {0};
-    int lineIndex = 0, columnIndex = 0;
+  int begun = 0;
+  int matrix[MAX_LINE_LEN][MAX_COLUMN_LEN] = {0};
+  int rowLengths[MAX_LINE_LEN] = {0};
+  int lineIndex = 0, columnIndex = 0;
 
-    char *token = strtok(line, " ");
+  char *token = strtok(line, " ");
 
-    while (token)
+  while (token)
+  {
+    if (strcmp(token, "start") == 0)
     {
-        if (strcmp(token, "start") == 0)
-        {
-            if (begun)
-            {
-                rowLengths[lineIndex++] = columnIndex;
-                columnIndex = 0;
-            }
+      if (begun)
+      {
+        rowLengths[lineIndex++] = columnIndex;
+        columnIndex = 0;
+      }
 
-            begun = 1;
-        }
-        else
-        {
-            int value = parseInt(token);
+      begun = 1;
+    }
+    else
+    {
+      int value = parseInt(token);
 
-            matrix[lineIndex][columnIndex++] = value;
-        }
-
-        token = strtok(NULL, " ");
+      matrix[lineIndex][columnIndex++] = value;
     }
 
-    if (begun) rowLengths[lineIndex++] = columnIndex;
+    token = strtok(NULL, " ");
+  }
 
-    for (int i = 0; i < lineIndex; i++)
+  if (begun)
+    rowLengths[lineIndex++] = columnIndex;
+
+  for (int i = 0; i < lineIndex; i++)
+  {
+    int *row = matrix[i];
+    int rowLength = rowLengths[i];
+
+    sortIntegers(row, rowLength);
+  }
+
+  RowPair rowPairs[MAX_LINE_LEN] = {0};
+
+  for (int i = 0; i < lineIndex; i++)
+  {
+    int *row = matrix[i];
+    int rowLength = rowLengths[i];
+
+    int sum = 0;
+    for (int j = 0; j < rowLength; j++)
     {
-        int *row = matrix[i];
-        int rowLength = rowLengths[i];
-
-        sortIntegers(row, rowLength);
+      sum += row[j];
     }
 
-    RowPair rowPairs[MAX_LINE_LEN] = {0};
+    rowPairs[i].row = row;
+    rowPairs[i].sum = sum;
+  }
 
-    for (int i = 0; i < lineIndex; i++)
+  quickSortRowPairs(rowPairs, rowLengths, 0, lineIndex - 1);
+
+  IntList *intList = createIntList();
+
+  for (int i = 0; i < lineIndex; i++)
+  {
+    int sum = rowPairs[i].sum;
+
+    insertIntNode(intList, createIntNode(sum));
+  }
+
+  for (int i = 0; i < lineIndex; i++)
+  {
+    int isTheLastRow = i == lineIndex - 1;
+
+    int *row = rowPairs[i].row;
+    int sum = rowPairs[i].sum;
+
+    int ocurrencesOfSum = countIntNodeOccurrences(intList, sum);
+
+    removeIntValue(intList, sum);
+
+    if (ocurrencesOfSum > 1)
+      continue;
+
+    int rowLength = rowLengths[i];
+
+    fprintf(outputFile, "start ");
+
+    for (int j = 0; j < rowLength; j++)
     {
-        int *row = matrix[i];
-        int rowLength = rowLengths[i];
+      int isTheLastElement = j == rowLength - 1;
 
-        int sum = 0;
-        for (int j = 0; j < rowLength; j++)
-        {
-            sum += row[j];
-        }
+      fprintf(outputFile, "%d", row[j]);
 
-        rowPairs[i].row = row;
-        rowPairs[i].sum = sum;
+      if (!(isTheLastElement && isTheLastRow))
+      {
+        fprintf(outputFile, " ");
+      }
     }
+  }
 
-    quickSortRowPairs(rowPairs, rowLengths, 0, lineIndex - 1);
-
-    for (int i = 0; i < lineIndex; i++)
-    {
-        int isTheLastRow = i == lineIndex - 1;
-
-        int *row = rowPairs[i].row;
-        int rowLength = rowLengths[i];
-
-        fprintf(outputFile, "start ");
-
-        for (int j = 0; j < rowLength; j++)
-        {
-            int isTheLastElement = j == rowLength - 1;
-            
-            fprintf(outputFile, "%d", row[j]);
-
-            if (!(isTheLastElement && isTheLastRow))
-            {
-                fprintf(outputFile, " ");
-            }
-        }
-    }
-
-    if (!isLastLine)
-        fprintf(outputFile, "\n");
+  if (!isLastLine)
+    fprintf(outputFile, "\n");
 }
 
 void sortIntegers(int *integers, int n)
@@ -283,4 +330,173 @@ void removeNewLine(char *string)
   }
 
   strcpy(string, copy);
+}
+
+// doubly linked non-circular list methods (insert, remove, iterate, print) | implementations
+
+IntNode *createIntNode(int value)
+{
+  IntNode *node = malloc(sizeof(IntNode));
+  node->value = value;
+  node->prev = NULL;
+  node->next = NULL;
+
+  return node;
+}
+
+IntList *createIntList()
+{
+  IntList *list = malloc(sizeof(IntList));
+  list->head = NULL;
+
+  return list;
+}
+
+void insertIntNode(IntList *list, IntNode *node)
+{
+  if (!list->head)
+  {
+    list->head = node;
+    return;
+  }
+
+  IntNode *current = list->head;
+
+  while (current->next)
+  {
+    current = current->next;
+  }
+
+  current->next = node;
+  node->prev = current;
+}
+
+void removeIntNode(IntList *list, IntNode *node)
+{
+  if (!list->head)
+  {
+    return;
+  }
+
+  IntNode *current = list->head;
+
+  while (current)
+  {
+    if (current == node)
+    {
+      if (current->prev)
+      {
+        current->prev->next = current->next;
+      }
+
+      if (current->next)
+      {
+        current->next->prev = current->prev;
+      }
+
+      free(current);
+      break;
+    }
+
+    current = current->next;
+  }
+}
+
+void removeIntValue(IntList *list, int value)
+{
+  if (!list->head)
+  {
+    return;
+  }
+
+  IntNode *current = list->head;
+
+  while (current)
+  {
+    if (current->value == value)
+    {
+      if (current->prev)
+      {
+        current->prev->next = current->next;
+      }
+
+      if (current->next)
+      {
+        current->next->prev = current->prev;
+      }
+
+      free(current);
+      break;
+    }
+
+    current = current->next;
+  }
+}
+
+bool hasAnyNodeWithIntegerValue(IntList *list, int value)
+{
+  IntNode *current = list->head;
+
+  while (current)
+  {
+    if (current->value == value)
+    {
+      return true;
+    }
+
+    current = current->next;
+  }
+
+  return false;
+}
+
+void printIntNodes(IntList *list)
+{
+  IntNode *current = list->head;
+
+  if (!current)
+  {
+    printf("Empty list\n");
+    return;
+  }
+
+  while (current)
+  {
+    printf("%d ", current->value);
+    current = current->next;
+  }
+
+  printf("\n");
+}
+
+void freeIntList(IntList *list)
+{
+  IntNode *current = list->head;
+
+  while (current)
+  {
+    IntNode *next = current->next;
+    free(current);
+    current = next;
+  }
+
+  free(list);
+}
+
+int countIntNodeOccurrences(IntList *list, int value)
+{
+  IntNode *current = list->head;
+  int count = 0;
+
+  while (current)
+  {
+    if (current->value == value)
+    {
+      count++;
+    }
+
+    current = current->next;
+  }
+
+  return count;
 }

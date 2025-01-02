@@ -4,45 +4,32 @@
 
 #define MAX_LINE_LEN 1000
 
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
-// stack structure | signature
-
-typedef struct FloatStack
-{
-  float *values;
-  int sentinel;
-} FloatStack;
-
 // doubly linked non-circular list node structures | signatures
 
-typedef struct IntNode
-{
+typedef struct IntNode {
   int value;
 
   struct IntNode *prev;
   struct IntNode *next;
 } IntNode;
 
-typedef struct IntList
-{
+typedef struct IntList {
   IntNode *head;
 } IntList;
 
-typedef struct FloatNode
-{
+typedef struct FloatNode {
   float value;
 
   struct FloatNode *prev;
   struct FloatNode *next;
 } FloatNode;
 
-typedef struct FloatList
-{
+typedef struct FloatList {
   FloatNode *head;
 } FloatList;
 
@@ -52,7 +39,7 @@ void effectivelyProccessParsedContent(IntList *intList, FloatList *floatList, FI
 void processLine(char *line, FILE *outputFile, int isLastLine);
 void readInputAndProcess();
 
-// doubly linked circular list methods (insert, remove, iterate, has, print, sort) | signatures
+// doubly linked circular list methods (insert, remove, iterate, print, sort) | signatures
 
 IntNode *createIntNode(int value);
 FloatNode *createFloatNode(float value);
@@ -69,16 +56,13 @@ void removeFloatNode(FloatList *list, FloatNode *node);
 IntNode *iterateIntNodes(IntList *list, void (*callback)(IntNode *));
 FloatNode *iterateFloatNodes(FloatList *list, void (*callback)(FloatNode *));
 
-bool hasAnyNodeWithIntegerValue(IntList *list, int value);
-bool hasAnyNodeWithFloatValue(FloatList *list, float value);
-
 void printIntNodes(IntList *list);
 void printFloatNodes(FloatList *list);
 
 void sortIntList(IntList *list);
 void sortFloatList(FloatList *list);
 
-void freeIntList(IntList *list);     // just in case
+void freeIntList(IntList *list); // just in case
 void freeFloatList(FloatList *list); // just in case
 
 // utility methods | signatures
@@ -105,15 +89,6 @@ int partitionFloats(float *list, int low, int high);
 
 void swapIntegers(int *integers, int i, int j);
 void swapFloats(float *floats, int i, int j);
-
-// stack methods | signatures
-
-FloatStack *createFloatStack(int size);
-bool hasFloatInStack(FloatStack *stack, float value);
-bool hasFloatStackValues(FloatStack *stack);
-float peekFloat(FloatStack *stack);
-float popFloat(FloatStack *stack);
-void pushFloat(FloatStack *stack, float value);
 
 // === IMPLEMENTATIONS ===
 
@@ -164,126 +139,111 @@ void readInputAndProcess()
 
 void processLine(char *line, FILE *outputFile, int isLastLine)
 {
-  removeNewLine(line);
+    removeNewLine(line);
 
-  IntList *intList = createIntList();
-  FloatList *floatList = createFloatList();
+    IntList *intList = createIntList();
+    FloatList *floatList = createFloatList();
 
-  char *token = strtok(line, " ");
+    char *token = strtok(line, " ");
 
-  int currentlyReadingInts = 0;
-  int currentlyReadingFloats = 0;
+    int currentlyReadingInts = 0;
+    int currentlyReadingFloats = 0;
 
-  while (token)
-  {
-    if (strcmp(token, "LE") == 0)
+    while (token)
     {
-      if (currentlyReadingInts)
-      {
-        printf("Misleaded input: LE while already reading integers\n");
-        break;
-      }
+        if (strcmp(token, "LE") == 0)
+        {
+            if(currentlyReadingInts)
+            {
+              printf("Misleaded input: LE while already reading integers\n");
+              break;
+            }
 
-      currentlyReadingFloats = 0;
-      currentlyReadingInts = 1;
+            currentlyReadingFloats = 0;
+            currentlyReadingInts = 1;
+        } else if (strcmp(token, "LI") == 0) {
+            if (currentlyReadingFloats) {
+              printf("Misleaded input: LI while already reading floats\n");
+              break;
+            }
+
+            currentlyReadingInts = 0;
+            currentlyReadingFloats = 1;
+        }
+        else
+        {
+            if (currentlyReadingInts)
+            {
+                int value = parseInt(token);
+                IntNode *node = createIntNode(value);
+
+                insertIntNode(intList, node);
+            }
+            else if (currentlyReadingFloats)
+            {
+                float value = parseFloat(token);
+                FloatNode *node = createFloatNode(value);
+                
+                insertFloatNode(floatList, node);
+            }
+        }
+
+        token = strtok(NULL, " ");
     }
-    else if (strcmp(token, "LI") == 0)
-    {
-      if (currentlyReadingFloats)
-      {
-        printf("Misleaded input: LI while already reading floats\n");
-        break;
-      }
 
-      currentlyReadingInts = 0;
-      currentlyReadingFloats = 1;
-    }
-    else
-    {
-      if (currentlyReadingInts)
-      {
-        int value = parseInt(token);
-        IntNode *node = createIntNode(value);
+    sortIntList(intList);
+    sortFloatList(floatList);
+    
+    effectivelyProccessParsedContent(intList, floatList, outputFile);
 
-        insertIntNode(intList, node);
-      }
-      else if (currentlyReadingFloats)
-      {
-        float value = parseFloat(token);
-        FloatNode *node = createFloatNode(value);
-
-        insertFloatNode(floatList, node);
-      }
-    }
-
-    token = strtok(NULL, " ");
-  }
-
-  sortIntList(intList);
-  sortFloatList(floatList);
-
-  effectivelyProccessParsedContent(intList, floatList, outputFile);
-
-  if (!isLastLine)
-    fprintf(outputFile, "\n");
+    if (!isLastLine)
+        fprintf(outputFile, "\n");
 }
 
 void effectivelyProccessParsedContent(IntList *intList, FloatList *floatList, FILE *outputFile)
 {
-  fprintf(outputFile, "[");
+    fprintf(outputFile, "[");
+    
+    IntNode *currentInt = intList->head;
 
-  IntNode *currentInt = intList->head;
-  FloatStack *alreadyPrintedFloats = createFloatStack(1000);
-
-  while (currentInt)
-  {
-    fprintf(outputFile, "%d(", currentInt->value);
-
-    FloatNode *currentFloat = floatList->head;
-
-    while (currentFloat)
+    while (currentInt)
     {
-      float floatValue = currentFloat->value;
-      int integerPart = (int)floatValue;
-      int isOneUnitDifference = abs(floatValue - currentInt->value) < 1;
-      int hasPreviousAlreadyBeenPrinted = hasFloatInStack(alreadyPrintedFloats, floatValue);
+        fprintf(outputFile, "%d(", currentInt->value);
 
-      if ((integerPart == currentInt->value || isOneUnitDifference) && !hasPreviousAlreadyBeenPrinted)
-      {
-        char *floatString = formatFloatToString(floatValue);
+        FloatNode *currentFloat = floatList->head;
 
-        trimTrailingZeroOfString(floatString);
+        while (currentFloat) {
+          int integerPart = (int) currentFloat->value;
 
-        fprintf(outputFile, "%s", floatString);
+          if (integerPart == currentInt->value) {
+            char *floatString = formatFloatToString(currentFloat->value);
 
-        FloatNode *nextFloat = currentFloat->next;
+            trimTrailingZeroOfString(floatString);
 
-        if (nextFloat)
-        {
-          float nextFloatValue = nextFloat->value;
+            fprintf(outputFile, "%s", floatString);
 
-          int nextIntegerPart = (int)nextFloatValue;
-          int isNextIntegerOneUnitDifference = abs(nextFloatValue - currentInt->value) < 1;
+            FloatNode *nextFloat = currentFloat->next;
 
-          if ((nextIntegerPart == currentInt->value || isNextIntegerOneUnitDifference))
-            fprintf(outputFile, "->");
+            if (nextFloat) {
+              int nextIntegerPart = (int) nextFloat->value;
+
+              if (nextIntegerPart == currentInt->value) 
+                fprintf(outputFile, "->");
+            }
+          }
+
+          currentFloat = currentFloat->next;
         }
 
-        pushFloat(alreadyPrintedFloats, floatValue);
-      }
+        fprintf(outputFile, ")");
 
-      currentFloat = currentFloat->next;
+        if (currentInt->next)
+          fprintf(outputFile, "->");
+
+        currentInt = currentInt->next;
     }
 
-    fprintf(outputFile, ")");
-
-    if (currentInt->next)
-      fprintf(outputFile, "->");
-
-    currentInt = currentInt->next;
-  }
-
-  fprintf(outputFile, "]");
+    fprintf(outputFile, "]");
 }
 
 // doubly linked circular list methods (insert, remove, iterate, print) | implementations
@@ -323,6 +283,7 @@ FloatList *createFloatList()
 
   return list;
 }
+
 
 void insertIntNode(IntList *list, IntNode *node)
 {
@@ -450,46 +411,11 @@ FloatNode *iterateFloatNodes(FloatList *list, void (*callback)(FloatNode *))
   return list->head;
 }
 
-bool hasAnyNodeWithIntegerValue(IntList *list, int value)
-{
-  IntNode *current = list->head;
-
-  while (current)
-  {
-    if (current->value == value)
-    {
-      return true;
-    }
-
-    current = current->next;
-  }
-
-  return false;
-}
-
-bool hasAnyNodeWithFloatValue(FloatList *list, float value)
-{
-  FloatNode *current = list->head;
-
-  while (current)
-  {
-    if (current->value == value)
-    {
-      return true;
-    }
-
-    current = current->next;
-  }
-
-  return false;
-}
-
 void printIntNodes(IntList *list)
 {
   IntNode *current = list->head;
 
-  if (!current)
-  {
+  if (!current) {
     printf("Empty list\n");
     return;
   }
@@ -507,8 +433,7 @@ void printFloatNodes(FloatList *list)
 {
   FloatNode *current = list->head;
 
-  if (!current)
-  {
+  if (!current) {
     printf("Empty list\n");
     return;
   }
@@ -522,8 +447,8 @@ void printFloatNodes(FloatList *list)
   printf("\n");
 }
 
-void sortIntList(IntList *list)
-{
+
+void sortIntList(IntList* list) {
   IntNode *current = list->head;
 
   int amount = 0;
@@ -554,8 +479,7 @@ void sortIntList(IntList *list)
   free(integers);
 }
 
-void sortFloatList(FloatList *list)
-{
+void sortFloatList(FloatList* list) {
   FloatNode *current = list->head;
 
   int amount = 0;
@@ -758,59 +682,4 @@ void swapFloats(float *floats, int i, int j)
   float temp = floats[i];
   floats[i] = floats[j];
   floats[j] = temp;
-}
-
-// stack methods | implementations
-
-FloatStack *createFloatStack(int size)
-{
-  FloatStack *stack = malloc(sizeof(FloatStack));
-
-  stack->values = malloc(sizeof(float) * size);
-  stack->sentinel = 0;
-
-  return stack;
-}
-
-bool hasFloatInStack(FloatStack *stack, float value)
-{
-  for (int index = 0; index < stack->sentinel; index++)
-  {
-    if (stack->values[index] == value)
-    {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool hasFloatStackValues(FloatStack *stack)
-{
-  return stack->sentinel > 0;
-}
-
-float peekFloat(FloatStack *stack)
-{
-  if (!hasFloatStackValues(stack))
-  {
-    return -1;
-  }
-
-  return stack->values[stack->sentinel - 1];
-}
-
-float popFloat(FloatStack *stack)
-{
-  if (!hasFloatStackValues(stack))
-  {
-    return -1;
-  }
-
-  return stack->values[--stack->sentinel];
-}
-
-void pushFloat(FloatStack *stack, float value)
-{
-  stack->values[stack->sentinel++] = value;
 }
