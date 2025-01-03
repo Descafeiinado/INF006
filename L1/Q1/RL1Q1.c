@@ -298,12 +298,10 @@ int partitionRowPairs(RowPair *list, int *rowLengths, int low, int high)
 
 void swapRowPairs(RowPair *list, int *rowLengths, int i, int j)
 {
-  // Swap the RowPair elements
   RowPair temp = list[i];
   list[i] = list[j];
   list[j] = temp;
 
-  // Swap the corresponding rowLengths
   int tempLength = rowLengths[i];
   rowLengths[i] = rowLengths[j];
   rowLengths[j] = tempLength;

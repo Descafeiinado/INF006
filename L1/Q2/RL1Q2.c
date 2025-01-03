@@ -110,8 +110,6 @@ void readInputAndProcess()
 
 void processLine(char *line, FILE *outputFile, int isLastLine)
 {
-  // removeNewLine(line);
-
   Stack stack, sentinel;
 
   initStack(&sentinel);
@@ -127,9 +125,6 @@ void processLine(char *line, FILE *outputFile, int isLastLine)
 
     token = strtok(NULL, " \n");
   }
-
-  // Bruno Dani Carla Antônia Walter
-  // push-Bruno push-Dani 1x-pop push-Carla push-Dani 3x-pop push-Antônia push-Bruno push-Carla push-Dani push-Walter
 
   for (int i = 0; i < count; i++)
   {
