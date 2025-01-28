@@ -65,7 +65,8 @@ WORKING_DIR="L$CURRENT_LIST/Q$QUESTION_NUMBER"
 
 case $USE_COMPLEX_DATA in
 true)
-  DATA_DIR="complex"
+  # DATA_DIR="complex"
+  DATA_DIR="gabarito"
   ;;
 *)
   DATA_DIR="basic"
