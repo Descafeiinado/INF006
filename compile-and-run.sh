@@ -65,8 +65,7 @@ WORKING_DIR="L$CURRENT_LIST/Q$QUESTION_NUMBER"
 
 case $USE_COMPLEX_DATA in
 true)
-  # DATA_DIR="complex"
-  DATA_DIR="gabarito"
+  DATA_DIR="complex"
   ;;
 *)
   DATA_DIR="basic"
@@ -82,7 +81,7 @@ if [ -z "$SOURCE_FILES" ]; then
   exit 1
 fi
 
-gcc -g -fexec-charset=UTF-8 -finput-charset=UTF-8 $SOURCE_FILES -o RL${CURRENT_LIST}Q${QUESTION_NUMBER}
+gcc -g -fexec-charset=UTF-8 -finput-charset=UTF-8 $SOURCE_FILES -o RL${CURRENT_LIST}Q${QUESTION_NUMBER} -lm
 
 if [ $? -ne 0 ]; then
   echo "^^^ a compilação do código falhou ^^^"
