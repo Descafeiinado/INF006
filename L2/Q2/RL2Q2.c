@@ -1,3 +1,7 @@
+// Discentes:
+// - Filipe Lordêlo Fiúza (20241160009)
+// - Júlio dos Reis Sousa (20241160014)
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
